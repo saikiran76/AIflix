@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Video App</title>
+</head>
+<body>
+  <h1>Video App</h1>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="video" id="videoInput">
+    <button type="submit">Upload Video</button>
+  </form>
+  <div id="progressBarContainer" style="display: none;">
+    <div id="progressBar" style="width: 0;"></div>
+    <div id="progressText">0%</div>
+  </div>
+  <div id="message"></div>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const videoInput = document.getElementById('videoInput');
+      const progressBarContainer = document.getElementById('progressBarContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const message = document.getElementById('message');
+
+      progressBarContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.innerText = '0%';
+      message.innerText = '';
+
+      const formData = new FormData();
+      formData.append('video', videoInput.files[0]);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/upload');
+      xhr.upload.addEventListener('progress', function (e) {
+        const progress = (e.loaded / e.total) * 100;
+        progressBar.style.width = progress + '%';
+        progressText.innerText = progress.toFixed(2) + '%';
+      });
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            message.innerText = response.message;
+            videoInput.value = '';
+            progressBarContainer.style.display = 'none';
+          } else {
+            message.innerText = 'Error uploading video';
+          }
+        }
+      };
+      xhr.send(formData);
+    });
+  </script>
+</body>
+</html>

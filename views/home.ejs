@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AIflix</title>
+  <style>
+    body {
+      background-color: #f1f1f1;
+      font-family: poppins;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #000;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+      font-size: 24px;
+    }
+
+    .video-container {
+      max-width: 800px;
+      margin: 20px auto;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .video-player {
+      width: 100%;
+    }
+
+    .video-title {
+      background-color: #000;
+      color: #fff;
+      padding: 8px;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .vote-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px auto;
+    }
+
+    .vote-button {
+      background-color: #f44336;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      padding-bottom: 10px;
+      margin-bottom: 5px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: background-color 0.3s;
+    }
+
+    button{
+      background-color: #f44336;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      padding-bottom: 10px;
+      margin-bottom: 5px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: background-color 0.3s;
+    }
+
+    button:hover{
+        background-color:#d32f2f;
+    }
+
+    
+
+    .vote-button:hover {
+      background-color: #d32f2f;
+    }
+
+    .vote-count {
+      font-size: 18px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    AIflix-Upvote your favourite AI video
+  </header>
+  <!-- Video Upload Form -->
+  <br>
+  <div class="upload-form-container">
+    <h2 style="font-size: 90%; margin: 1em;">Upload your creative AI video (Well It would be generated good if your prompt's not bad :) </h2>
+    <form id="uploadForm" enctype="multipart/form-data" style="margin: 1em;">
+      <input type="file" style="border-radius: 1em; border: none; color:#f44336;" name="video" id="videoInput">
+      <input type="text" name="title" placeholder="Video Title">
+      <button style=" height: 80%;" type="submit">Upload Video</button>
+    </form>
+    <div id="progressBarContainer" style="display: none;">
+      <div id="progressBar" style="width: 0;"></div>
+      <div id="progressText">0%</div>
+    </div>
+    <div id="message"></div>
+  </div>
+  <div id="message"></div>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const videoInput = document.getElementById('videoInput');
+      const progressBarContainer = document.getElementById('progressBarContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const message = document.getElementById('message');
+
+      progressBarContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.innerText = '0%';
+      message.innerText = '';
+
+      const formData = new FormData();
+      formData.append('video', videoInput.files[0]);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/upload');
+      xhr.upload.addEventListener('progress', function (e) {
+        const progress = (e.loaded / e.total) * 100;
+        progressBar.style.width = progress + '%';
+        progressText.innerText = progress.toFixed(2) + '%';
+      });
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            message.innerText = response.message;
+            videoInput.value = '';
+            progressBarContainer.style.display = 'none';
+          } else {
+            message.innerText = 'Error uploading video';
+          }
+        }
+      };
+      xhr.send(formData);
+    });
+  </script>
+  
+
+  <% if (videos.length > 0) { %>
+    <% videos.forEach((video) => { %>
+      <div class="video-container">
+        <video class="video-player" controls>
+          <source src="/videoplayer/<%= video.videoId %>" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <div class="video-title"><%= video.title %></div>
+        <div class="vote-container">
+            
+          <button class="vote-button" data-videoid="<%= video._id %>">Upvote</button>
+          <ion-icon name="happy"></ion-icon>
+          <span class="vote-count">Votes: <%= video.votes %></span>
+        </div>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <div>No videos found</div>
+  <% } %>
+
+  <script>
+    const voteButtons = document.querySelectorAll('.vote-button');
+    voteButtons.forEach((button) => {
+      button.addEventListener('click', function () {
+        const videoId = this.getAttribute('data-videoid');
+        const data = { videoId };
+
+        fetch('/vote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message === 'Vote added successfully') {
+              const voteCountElement = this.parentElement.querySelector('.vote-count');
+              const currentVotes = parseInt(voteCountElement.innerText.split(' ')[1]);
+              voteCountElement.innerText = 'Votes: ' + (currentVotes + 1);
+            }
+          })
+          .catch((error) => console.error('Error voting:', error));
+      });
+    });
+  </script>
+  <script src="https://unpkg.com/ionicons@4.5.10-0/dist/ionicons.js"></script>
+</body>
+</html>
